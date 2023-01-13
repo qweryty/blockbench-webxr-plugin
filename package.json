@@ -1,0 +1,21 @@
+{
+  "name": "blockbench-webxr-plugin",
+  "version": "0.0.1",
+  "description": "WebXR plugin for Blockbench 3D modeller ",
+  "main": "webxr_viewer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "blockbench-types": "^4.5.0",
+    "dotenv": "^16.0.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1"
+  },
+  "dependencies": {
+    "three": "0.129.0"
+  }
+}
