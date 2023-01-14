@@ -1,73 +1,17 @@
-//import * as THREE from "three";
-// import { Vector2 } from 'three';
+import * as THREE from "three";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
-import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
+import { Controller } from './controller';
 
 (function () {
     const BASE_NEAR = 0.1;
     const BASE_FAR = 2000;
-    // gamepad.axes[0] - 
-    // gamepad.axes[1] - 
-    // gamepad.axes[2] - left/right
-    // gamepad.axes[3] - up/down
-    // gamepad.buttons[0] - trigger
-    // gamepad.buttons[1] - grip
-    // gamepad.buttons[2] - 
-    // gamepad.buttons[3] - joysyick
-    // gamepad.buttons[4] - a/x
-    // gamepad.buttons[5] - b/y
-    // gamepad.buttons[6] - 
-    const TRIGGER_BUTTON = 0;
-    const GRIP_BUTTON = 1;
-    const JOYSTICK_BUTTON = 3;
-    const AX_BUTTON = 4;
-    const BY_BUTTON = 5;
 
     let sideGridsVisible;
     const preview = new Preview({ id: 'webxr', offscreen: true });
-    let renderer, rightController, leftController;
+    let renderer, vrButton, controllers;
     const dolly = new THREE.Object3D();
     const clock = new THREE.Clock();
     dolly.name = 'dolly'
-
-    function onSelectStart() {
-        this.userData.isSelecting = true;
-        this.userData.startSelectingPosition = this.position.clone();
-    }
-
-    function onSelectEnd() {
-        this.userData.isSelecting = false;
-    }
-
-    function onSqueezeStart() {
-        this.userData.isSqueezing = true;
-        this.userData.startSqueezingPosition = this.position.clone();
-    }
-
-    function onSqueezeEnd() {
-        this.userData.isSqueezing = false;
-    }
-
-    function setupController(index, renderer, controllerModelFactory) {
-        let controllerGrip = renderer.xr.getControllerGrip(index);
-        controllerGrip.add(controllerModelFactory.createControllerModel(controllerGrip));
-        dolly.add(controllerGrip);
-        let controller = renderer.xr.getController(index);
-
-        controller.userData.isSqueezing = false;
-        controller.userData.isSelecting = false;
-        controller.addEventListener('selectstart', onSelectStart);
-        controller.addEventListener('selectend', onSelectEnd);
-        controller.addEventListener('squeezestart', onSqueezeStart);
-        controller.addEventListener('squeezeend', onSqueezeEnd);
-        controller.addEventListener('connected', (e) => {
-            console.log(`connected: ${JSON.stringify(e)} ${e.data.gamepad}`)
-            controller.userData.gamepad = e.data.gamepad
-        });
-        controller.userData.lastPosition = controller.position.clone();
-
-        return controller;
-    }
 
     function moveByVectors(last, current) {
         let lastPositionWorld = dolly.localToWorld(last.clone());
@@ -77,9 +21,11 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
     }
 
     function move(controller) {
-        moveByVectors(controller.userData.lastPosition, controller.position);
+        moveByVectors(controller.lastPosition, controller.position);
     }
 
+    const originalObject3DAdd = THREE.Object3D.prototype.add
+    const originalSceneAdd = THREE.Scene.prototype.add
     Plugin.register('webxr_viewer', {
         title: 'WebXR Viewer',
         author: 'Sergey Morozov',
@@ -89,12 +35,10 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
         variant: 'web',  // Not sure if this will work with electron app
         onload() {
             // three.js has a bug that incorrectly culls objects when dolly scale is too high
-            const originalObject3DAdd = THREE.Object3D.prototype.add
             THREE.Object3D.prototype.add = function (object) {
                 object.frustumCulled = false;
                 originalObject3DAdd.call(this, object);
             }
-            const originalSceneAdd = THREE.Scene.prototype.add
             THREE.Scene.prototype.add = function (object) {
                 object.frustumCulled = false;
                 originalSceneAdd.call(this, object);
@@ -118,11 +62,10 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
             scene.add(dolly)
 
             const mainPreview = Preview.all.find(preview => preview.id == 'main');
-            mainPreview.canvas.parentNode.appendChild(VRButton.createButton(renderer));
+            vrButton = VRButton.createButton(renderer)
+            mainPreview.canvas.parentNode.appendChild(vrButton);
 
-            const controllerModelFactory = new XRControllerModelFactory();
-            rightController = setupController(0, renderer, controllerModelFactory);
-            leftController = setupController(1, renderer, controllerModelFactory);
+            controllers = [new Controller(0, renderer, dolly), new Controller(1, renderer, dolly)]
 
             renderer.xr.addEventListener('sessionstart', () => {
                 sideGridsVisible = Canvas.side_grids.x.visible;
@@ -134,15 +77,15 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 
             renderer.setAnimationLoop(function () {
                 const dt = clock.getDelta();
-                if (rightController.userData.isSqueezing && leftController.userData.isSqueezing) {
+                if (controllers[1].isSqueezing && controllers[0].isSqueezing) {
                     // Locomotion with translation; rotation and scale
-                    let leftLastPosition = leftController.userData.lastPosition.clone();
-                    let rightLastPosition = rightController.userData.lastPosition.clone();
+                    let leftLastPosition = controllers[0].lastPosition.clone();
+                    let rightLastPosition = controllers[1].lastPosition.clone();
 
                     let lastVector = leftLastPosition.clone().sub(rightLastPosition);
-                    let currentVector = leftController.position.clone().sub(rightController.position.clone());
+                    let currentVector = controllers[0].position.clone().sub(controllers[1].position);
                     let lastCenter = leftLastPosition.clone().lerp(rightLastPosition, 0.5)
-                    let currentCenter = leftController.position.clone().lerp(rightController.position.clone(), 0.5);
+                    let currentCenter = controllers[0].position.clone().lerp(controllers[1].position, 0.5);
 
                     let scaleFactor = lastVector.length() / currentVector.length();
 
@@ -163,15 +106,22 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
                     dolly.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationAngle)
                     dolly.position.add(currentCenter);
                     dolly.rotateY(rotationAngle)
-                } else if (rightController.userData.isSqueezing) {
-                    move(rightController);
-                } else if (leftController.userData.isSqueezing) {
-                    move(leftController);
+                } else if (controllers[1].isSqueezing) {
+                    move(controllers[1]);
+                } else if (controllers[0].isSqueezing) {
+                    move(controllers[0]);
                 }
-                leftController.userData.lastPosition.copy(leftController.position);
-                rightController.userData.lastPosition.copy(rightController.position);
+                controllers[0].update();
+                controllers[1].update();
                 preview.render();
             });
+        },
+        onunload() {
+            mainPreview.canvas.parentNode.removeChild(vrButton);
+            scene.remove(dolly);
+            THREE.Object3D.prototype.add = originalObject3DAdd;
+            THREE.Scene.prototype.add = originalSceneAdd;
+            preview.delete();
         }
     });
 })();
