@@ -24,9 +24,9 @@ class Controller {
         this._buttonMapping = buttonMapping;
         this._axesMapping = axesMapping;
 
-        let controllerGrip = renderer.xr.getControllerGrip(index);
-        controllerGrip.add(CONTROLLER_MODEL_FACTORY.createControllerModel(controllerGrip));
-        parentObject.add(controllerGrip);
+        this._controllerGrip = renderer.xr.getControllerGrip(index);
+        this._controllerGrip.add(CONTROLLER_MODEL_FACTORY.createControllerModel(this._controllerGrip));
+        parentObject.add(this._controllerGrip);
         this._controller = renderer.xr.getController(index);
 
         this._isSqueezing = false;
@@ -78,9 +78,15 @@ class Controller {
 
     get isSqueezing() { return this._isSqueezing; }
 
-    get lastPosition() { return this._lastPosition;}
-
+    // mainly for pointing like UI interaction
     get position() { return this._controller.position; }
+
+    get lastPosition() { return this._lastPosition; }
+
+    // for holding things
+    get gripPosition() { return this._controllerGrip.position; }
+
+    get lastGripPosition() { return this._lastGripPosition; }
 
     get connected() { return this._connected; }
 
@@ -88,6 +94,7 @@ class Controller {
 
     update() {
         this._lastPosition = this._controller.position.clone();
+        this._lastGripPosition = this._controllerGrip.position.clone();
     }
 }
 

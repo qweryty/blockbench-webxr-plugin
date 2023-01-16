@@ -21,7 +21,7 @@ import { Controller } from './controller';
     }
 
     function move(controller) {
-        moveByVectors(controller.lastPosition, controller.position);
+        moveByVectors(controller.lastGripPosition, controller.gripPosition);
     }
 
     const originalObject3DAdd = THREE.Object3D.prototype.add
@@ -79,13 +79,13 @@ import { Controller } from './controller';
                 const dt = clock.getDelta();
                 if (controllers[1].isSqueezing && controllers[0].isSqueezing) {
                     // Locomotion with translation; rotation and scale
-                    let leftLastPosition = controllers[0].lastPosition.clone();
-                    let rightLastPosition = controllers[1].lastPosition.clone();
+                    let leftLastPosition = controllers[0].lastGripPosition.clone();
+                    let rightLastPosition = controllers[1].lastGripPosition.clone();
 
                     let lastVector = leftLastPosition.clone().sub(rightLastPosition);
-                    let currentVector = controllers[0].position.clone().sub(controllers[1].position);
+                    let currentVector = controllers[0].gripPosition.clone().sub(controllers[1].gripPosition);
                     let lastCenter = leftLastPosition.clone().lerp(rightLastPosition, 0.5)
-                    let currentCenter = controllers[0].position.clone().lerp(controllers[1].position, 0.5);
+                    let currentCenter = controllers[0].gripPosition.clone().lerp(controllers[1].gripPosition, 0.5);
 
                     let scaleFactor = lastVector.length() / currentVector.length();
 
