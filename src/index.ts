@@ -1,32 +1,37 @@
-import * as THREE from "three";
-import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+/// <reference types="./missing-blockbench-types" />
+/// <reference types="./missing-three-types" />
+/// <reference types="blockbench-types" />
+
+
+import * as THREE from 'three';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton';
 import { Controller } from './controller';
 
 (function () {
     const BASE_NEAR = 0.1;
     const BASE_FAR = 2000;
 
-    let sideGridsVisible;
-    const preview = new Preview({ id: 'webxr', offscreen: true });
-    let renderer, vrButton, controllers;
+    let sideGridsVisible: boolean, mainPreview: Preview;
+    const preview = new Preview({ id: 'webxr', offscreen: true });  // FIXME bug in blockbench-types
+    let renderer: THREE.WebGLRenderer, vrButton: HTMLElement, controllers: Controller[];
     const dolly = new THREE.Object3D();
     const clock = new THREE.Clock();
     dolly.name = 'dolly'
 
-    function moveByVectors(last, current) {
+    function moveByVectors(last: THREE.Vector3, current: THREE.Vector3) {
         let lastPositionWorld = dolly.localToWorld(last.clone());
         let currentPositionWorld = dolly.localToWorld(current.clone());
         const positionDelta = lastPositionWorld.sub(currentPositionWorld);
         dolly.position.add(positionDelta);
     }
 
-    function move(controller) {
+    function move(controller: Controller) {
         moveByVectors(controller.lastGripPosition, controller.gripPosition);
     }
 
     const originalObject3DAdd = THREE.Object3D.prototype.add
     const originalSceneAdd = THREE.Scene.prototype.add
-    Plugin.register('webxr_viewer', {
+    BBPlugin.register('webxr_viewer', {
         title: 'WebXR Viewer',
         author: 'Sergey Morozov',
         icon: 'icon',
@@ -35,15 +40,15 @@ import { Controller } from './controller';
         variant: 'web',  // Not sure if this will work with electron app
         onload() {
             // three.js has a bug that incorrectly culls objects when dolly scale is too high
-            THREE.Object3D.prototype.add = function (object) {
+            THREE.Object3D.prototype.add = function (object: any) {
                 object.frustumCulled = false;
-                originalObject3DAdd.call(this, object);
+                return originalObject3DAdd.call(this, object);
             }
-            THREE.Scene.prototype.add = function (object) {
+            THREE.Scene.prototype.add = function (object: any) {
                 object.frustumCulled = false;
-                originalSceneAdd.call(this, object);
+                return originalSceneAdd.call(this, object);
             }
-            scene.traverse(function (node) {
+            Canvas.scene.traverse(function (node) {
                 if (node instanceof THREE.Object3D) {
                     node.frustumCulled = false;
                 }
@@ -51,7 +56,7 @@ import { Controller } from './controller';
 
             renderer = preview.renderer;
             renderer.xr.enabled = true;
-            let camera = renderer.xr.getCamera();
+            let camera: THREE.PerspectiveCamera = renderer.xr.getCamera();
             camera.near = BASE_NEAR;
             preview.camera.near = BASE_NEAR;
             camera.far = BASE_FAR;
@@ -59,10 +64,12 @@ import { Controller } from './controller';
 
             dolly.add(camera)
             dolly.add(preview.camera)
-            scene.add(dolly)
+            Canvas.scene.add(dolly)
 
-            const mainPreview = Preview.all.find(preview => preview.id == 'main');
+            // @ts-ignore
+            mainPreview = Preview.all.find(preview => preview.id == 'main');
             vrButton = VRButton.createButton(renderer)
+            // @ts-ignore
             mainPreview.canvas.parentNode.appendChild(vrButton);
 
             controllers = [new Controller(0, renderer, dolly), new Controller(1, renderer, dolly)]
@@ -117,8 +124,9 @@ import { Controller } from './controller';
             });
         },
         onunload() {
+            // @ts-ignore
             mainPreview.canvas.parentNode.removeChild(vrButton);
-            scene.remove(dolly);
+            Canvas.scene.remove(dolly);
             THREE.Object3D.prototype.add = originalObject3DAdd;
             THREE.Scene.prototype.add = originalSceneAdd;
             preview.delete();

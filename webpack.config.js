@@ -3,9 +3,21 @@ require('dotenv').config()
 
 module.exports = {
     mode: 'development',
-    devtool: false,
+    devtool: 'source-map',
     target: 'node',
-    entry: './src/index.js',
+    entry: './src/index.ts',
+    module: {
+        rules: [
+            {
+                test: /\.tsx?$/i,
+                use: 'ts-loader',
+                exclude: /node_modules/
+            },
+        ]
+    },
+    resolve: {
+        extensions: ['.tsx', '.ts', '.js']
+    },
     output: {
         filename: 'webxr_viewer.js',
         path: PathModule.resolve(__dirname, 'plugins')
