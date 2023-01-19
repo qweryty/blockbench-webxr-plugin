@@ -1,22 +1,21 @@
-/// <reference types="./missing-blockbench-types" />
 /// <reference types="./missing-three-types" />
-/// <reference types="blockbench-types" />
-
+/// <reference types="./missing-blockbench-types/index" />
 
 import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton';
-import { Controller } from './controller';
+import { Controller, ControllerEvent } from './controller';
+import { WebXRPreview } from './webxr-preview';
 
 (function () {
     const BASE_NEAR = 0.1;
     const BASE_FAR = 2000;
 
     let sideGridsVisible: boolean, mainPreview: Preview;
-    const preview = new Preview({ id: 'webxr', offscreen: true });  // FIXME bug in blockbench-types
+    const preview = new WebXRPreview({ id: 'webxr', offscreen: true });  // FIXME bug in blockbench-types
     let renderer: THREE.WebGLRenderer, vrButton: HTMLElement, controllers: Controller[];
     const dolly = new THREE.Object3D();
+    dolly.name = 'dolly';
     const clock = new THREE.Clock();
-    dolly.name = 'dolly'
 
     function moveByVectors(last: THREE.Vector3, current: THREE.Vector3) {
         let lastPositionWorld = dolly.localToWorld(last.clone());
@@ -37,6 +36,7 @@ import { Controller } from './controller';
         icon: 'icon',
         description: 'Allows previewing models using VR headsets, including Meta Quest 2',
         version: '0.0.1',
+        tags: ['interface'],
         variant: 'web',  // Not sure if this will work with electron app
         onload() {
             // three.js has a bug that incorrectly culls objects when dolly scale is too high
@@ -73,7 +73,20 @@ import { Controller } from './controller';
             mainPreview.canvas.parentNode.appendChild(vrButton);
 
             controllers = [new Controller(0, renderer, dolly), new Controller(1, renderer, dolly)]
+            let selectstart = (e: ControllerEvent) => {preview.click(e);};
+            controllers[0].addEventListener('selectstart', <EventListener>selectstart);
+            controllers[1].addEventListener('selectstart', <EventListener>selectstart);
 
+            let selectend = (e: ControllerEvent) => {preview.mouseup(e);};
+            controllers[0].addEventListener('selectend', <EventListener>selectend);
+            controllers[1].addEventListener('selectend', <EventListener>selectend);
+
+            let controllerMove = (e: ControllerEvent) => {
+                preview.mousemove(e);
+            };
+            controllers[0].addEventListener('controllermove', <EventListener>controllerMove);
+            controllers[1].addEventListener('controllermove', <EventListener>controllerMove);
+            
             renderer.xr.addEventListener('sessionstart', () => {
                 sideGridsVisible = Canvas.side_grids.x.visible;
                 Canvas.side_grids.x.visible = false;
@@ -84,6 +97,7 @@ import { Controller } from './controller';
 
             renderer.setAnimationLoop(function () {
                 const dt = clock.getDelta();
+
                 if (controllers[1].isSqueezing && controllers[0].isSqueezing) {
                     // Locomotion with translation; rotation and scale
                     let leftLastPosition = controllers[0].lastGripPosition.clone();
@@ -118,9 +132,9 @@ import { Controller } from './controller';
                 } else if (controllers[0].isSqueezing) {
                     move(controllers[0]);
                 }
+                preview.render();
                 controllers[0].update();
                 controllers[1].update();
-                preview.render();
             });
         },
         onunload() {

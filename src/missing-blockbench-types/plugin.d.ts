@@ -1,0 +1,3 @@
+interface PluginOptions {
+    version?: string
+}

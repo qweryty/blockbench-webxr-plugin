@@ -1,0 +1,3 @@
+interface BarSelect {
+    value: string;
+}

@@ -1,5 +1,14 @@
+/// <reference types="./missing-three-types" />
 import * as THREE from 'three';
 import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory';
+class ControllerEvent extends MouseEvent {
+    controller: Controller
+
+    constructor(type: string, controller: Controller) {
+        super(type);
+        this.controller = controller;
+    }
+}
 
 type Axes = {
     touchpadX: number,
@@ -52,7 +61,7 @@ const DEFAULT_BUTTON_MAPPING: ButtonMapping = {
 
 const CONTROLLER_MODEL_FACTORY = new XRControllerModelFactory();
 
-class Controller {
+class Controller extends EventTarget {
     _buttonMapping: ButtonMapping
     _axesMapping: AxesMapping
     _controllerGrip: THREE.XRGripSpace
@@ -64,6 +73,7 @@ class Controller {
     _gamepad?: Gamepad
     _lastGripPosition: THREE.Vector3
     _lastPosition: THREE.Vector3
+    _coursor: THREE.Mesh
 
     constructor(
         index: number,
@@ -72,24 +82,40 @@ class Controller {
         buttonMapping: ButtonMapping = DEFAULT_BUTTON_MAPPING,
         axesMapping: AxesMapping = DEFAUL_AXES_MAPPING
     ) {
+        super();
+
         this._buttonMapping = buttonMapping;
         this._axesMapping = axesMapping;
 
+        this._controller = renderer.xr.getController(index);
         this._controllerGrip = renderer.xr.getControllerGrip(index);
         this._controllerGrip.add(CONTROLLER_MODEL_FACTORY.createControllerModel(this._controllerGrip));
-        if (parentObject != null)
+        if (parentObject != null) {
             parentObject.add(this._controllerGrip);
-        this._controller = renderer.xr.getController(index);
+            parentObject.add(this._controller);
+        }
 
         this._isSqueezing = false;
         this._isSelecting = false;
         this._connected = false;
         this._handedness = null;
 
-        this._controller.addEventListener('selectstart', () => this._isSelecting = true);
-        this._controller.addEventListener('selectend', () => this._isSelecting = false);
-        this._controller.addEventListener('squeezestart', () => this._isSqueezing = true);
-        this._controller.addEventListener('squeezeend', () => this._isSqueezing = false);
+        this._controller.addEventListener('selectstart', () => {
+            this._isSelecting = true;
+            this.dispatchEvent(new ControllerEvent('selectstart', this));
+        });
+        this._controller.addEventListener('selectend', () => {
+            this._isSelecting = false;
+            this.dispatchEvent(new ControllerEvent('selectend', this));
+        });
+        this._controller.addEventListener('squeezestart', () => {
+            this._isSqueezing = true;
+            this.dispatchEvent(new ControllerEvent('squeezestart', this));
+        });
+        this._controller.addEventListener('squeezeend', () => {
+            this._isSqueezing = false;
+            this.dispatchEvent(new ControllerEvent('squeezeend', this));
+        });
         this._controller.addEventListener('connected', (e) => {
             console.log(`connected: ${JSON.stringify(e)} ${e.data.gamepad} ${e.data.handedness}`)
             this._connected = true;
@@ -97,6 +123,12 @@ class Controller {
             this._handedness = e.data.handedness;
         });
         this._controller.addEventListener('disconnected', (e) => { this._connected = false });
+
+        const coursorMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: .5, transparent: true });
+        this._coursor = new THREE.Mesh(new THREE.ConeGeometry(.005, 1), coursorMaterial);
+        this._coursor.rotateX(-Math.PI / 2);
+        this._coursor.translateY(.5);
+        this._controller.add(this._coursor)
 
         this._lastPosition = new THREE.Vector3();
         this._lastGripPosition = new THREE.Vector3();
@@ -139,6 +171,15 @@ class Controller {
     // mainly for pointing like UI interaction; equivalent to targetRaySpace
     get position(): THREE.Vector3 { return this._controller.position; }
 
+    // TODO do I need new Vector3?
+    get worldPosition(): THREE.Vector3 {
+        return this._controller.getWorldPosition(new THREE.Vector3);
+    }
+
+    get worldDirection(): THREE.Vector3 {
+        return this._controller.getWorldDirection(new THREE.Vector3).multiplyScalar(-1);
+    }
+
     get lastPosition(): THREE.Vector3 { return this._lastPosition; }
 
     // for holding things
@@ -151,9 +192,10 @@ class Controller {
     get handedness(): string | null { return this._handedness; }
 
     update() {
+        this.dispatchEvent(new ControllerEvent('controllermove', this));
         this._lastPosition.copy(this._controller.position);
         this._lastGripPosition.copy(this._controllerGrip.position);
     }
 }
 
-export { Controller }
+export { Controller, ControllerEvent }
