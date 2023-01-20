@@ -1,4 +1,4 @@
-declare var Transformer: THREE.TransformControls | undefined;  // TODO investigate missing TransformControls
+declare var Transformer: THREE.TransformControls;
 
 function updateCubeHighlights(hover_cube?: false | Any, force_off?: boolean)
 

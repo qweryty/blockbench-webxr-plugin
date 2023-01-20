@@ -5,12 +5,13 @@ import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton';
 import { Controller, ControllerEvent } from './controller';
 import { WebXRPreview } from './webxr-preview';
+import { WebXRTransformControls } from './webxr-transform-controls';
 
 (function () {
     const BASE_NEAR = 0.1;
     const BASE_FAR = 2000;
 
-    let sideGridsVisible: boolean, mainPreview: Preview;
+    let sideGridsVisible: boolean, mainPreview: Preview, oldTransformer: THREE.TransformControls;
     const preview = new WebXRPreview({ id: 'webxr', offscreen: true });  // FIXME bug in blockbench-types
     let renderer: THREE.WebGLRenderer, vrButton: HTMLElement, controllers: Controller[];
     const dolly = new THREE.Object3D();
@@ -54,8 +55,12 @@ import { WebXRPreview } from './webxr-preview';
                 }
             });
 
+            mainPreview = Preview.all.find(preview => preview.id == 'main') as Preview;
+
             renderer = preview.renderer;
             renderer.xr.enabled = true;
+
+            // Setup Cameras
             let camera: THREE.PerspectiveCamera = renderer.xr.getCamera();
             camera.near = BASE_NEAR;
             preview.camera.near = BASE_NEAR;
@@ -66,22 +71,42 @@ import { WebXRPreview } from './webxr-preview';
             dolly.add(preview.camera)
             Canvas.scene.add(dolly)
 
-            // @ts-ignore
-            mainPreview = Preview.all.find(preview => preview.id == 'main');
-            vrButton = VRButton.createButton(renderer)
-            // @ts-ignore
-            mainPreview.canvas.parentNode.appendChild(vrButton);
-
             controllers = [new Controller(0, renderer, dolly), new Controller(1, renderer, dolly)]
-            let selectstart = (e: ControllerEvent) => {preview.click(e);};
+
+            // Replace gizmos with WebXRCompatible
+            oldTransformer = Transformer
+            // FIXME TransformControls is not asignable to type Object3D
+            // @ts-ignore
+            Canvas.scene.remove(oldTransformer)
+            Canvas.gizmos.remove(oldTransformer)
+
+            Transformer = new WebXRTransformControls(mainPreview.camPers, mainPreview.canvas)
+	        Transformer.setSize(0.5)
+	        Canvas.scene.add(Transformer)
+	        Canvas.gizmos.push(Transformer);
+	        mainPreview.occupyTransformer()
+
+            // Setup VRButton
+            vrButton = VRButton.createButton(renderer);
+            (mainPreview.canvas.parentNode as Node).appendChild(vrButton);
+            
+            // Setup events
+            let selectstart = (e: ControllerEvent) => {
+                Transformer.onPointerDown(e);
+                preview.click(e);
+            };
             controllers[0].addEventListener('selectstart', <EventListener>selectstart);
             controllers[1].addEventListener('selectstart', <EventListener>selectstart);
 
-            let selectend = (e: ControllerEvent) => {preview.mouseup(e);};
+            let selectend = (e: ControllerEvent) => {
+                Transformer.onPointerUp(e);
+                preview.mouseup(e);
+            };
             controllers[0].addEventListener('selectend', <EventListener>selectend);
             controllers[1].addEventListener('selectend', <EventListener>selectend);
 
             let controllerMove = (e: ControllerEvent) => {
+                Transformer.onPointerMove(e);
                 preview.mousemove(e);
             };
             controllers[0].addEventListener('controllermove', <EventListener>controllerMove);
@@ -138,8 +163,7 @@ import { WebXRPreview } from './webxr-preview';
             });
         },
         onunload() {
-            // @ts-ignore
-            mainPreview.canvas.parentNode.removeChild(vrButton);
+            (mainPreview.canvas.parentNode as Node).removeChild(vrButton);
             Canvas.scene.remove(dolly);
             THREE.Object3D.prototype.add = originalObject3DAdd;
             THREE.Scene.prototype.add = originalSceneAdd;
