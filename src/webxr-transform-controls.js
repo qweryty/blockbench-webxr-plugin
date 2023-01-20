@@ -33,6 +33,7 @@ class WebXRTransformControls extends THREE.Object3D {
         this._mode = "translate";
         this._dragging = false;
         this._has_groups = false;
+        // FIXME depends on 2d camera position
         this._gizmo = {
             "translate": new THREE.TransformGizmoTranslate(),
             "scale": new THREE.TransformGizmoScale(),
@@ -658,12 +659,9 @@ class WebXRTransformControls extends THREE.Object3D {
         let transform_space = Transformer.getTransformSpace()
 
         if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-
             if (Toolbox.selected.id === 'move_tool') {
-
                 var snap_factor = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl)
                 this._point[axis] = Math.round(this._point[axis] / snap_factor) * snap_factor;
-
 
                 if (this._originalValue === null) {
                     this._originalValue = this._point[axis];

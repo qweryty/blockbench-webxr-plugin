@@ -81,37 +81,49 @@ import { WebXRTransformControls } from './webxr-transform-controls';
             Canvas.gizmos.remove(oldTransformer)
 
             Transformer = new WebXRTransformControls(mainPreview.camPers, mainPreview.canvas)
-	        Transformer.setSize(0.5)
-	        Canvas.scene.add(Transformer)
-	        Canvas.gizmos.push(Transformer);
-	        mainPreview.occupyTransformer()
+            Transformer.setSize(0.5)
+            Canvas.scene.add(Transformer)
+            Canvas.gizmos.push(Transformer);
+            mainPreview.occupyTransformer()
 
             // Setup VRButton
             vrButton = VRButton.createButton(renderer);
             (mainPreview.canvas.parentNode as Node).appendChild(vrButton);
-            
+
             // Setup events
+            let mainHand: string | null = 'right';
+            let mainHandActive: boolean = false;
             let selectstart = (e: ControllerEvent) => {
-                Transformer.onPointerDown(e);
-                preview.click(e);
+                if (!mainHandActive) {
+                    mainHand = e.controller.handedness;
+                    mainHandActive = true;
+                    Transformer.onPointerDown(e);
+                    preview.click(e);
+                }
             };
             controllers[0].addEventListener('selectstart', <EventListener>selectstart);
             controllers[1].addEventListener('selectstart', <EventListener>selectstart);
 
             let selectend = (e: ControllerEvent) => {
-                Transformer.onPointerUp(e);
-                preview.mouseup(e);
+                if (e.controller.handedness === mainHand) {
+                    Transformer.onPointerUp(e);
+                    preview.mouseup(e);
+                    mainHandActive = false;
+                }
             };
             controllers[0].addEventListener('selectend', <EventListener>selectend);
             controllers[1].addEventListener('selectend', <EventListener>selectend);
 
             let controllerMove = (e: ControllerEvent) => {
-                Transformer.onPointerMove(e);
-                preview.mousemove(e);
+                if (e.controller.handedness === mainHand) {
+                    Transformer.onPointerHover(e);
+                    Transformer.onPointerMove(e);
+                    preview.mousemove(e);
+                }
             };
             controllers[0].addEventListener('controllermove', <EventListener>controllerMove);
             controllers[1].addEventListener('controllermove', <EventListener>controllerMove);
-            
+
             renderer.xr.addEventListener('sessionstart', () => {
                 sideGridsVisible = Canvas.side_grids.x.visible;
                 Canvas.side_grids.x.visible = false;
