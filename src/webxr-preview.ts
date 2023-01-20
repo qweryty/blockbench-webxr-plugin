@@ -1,15 +1,17 @@
 /// <reference types="./missing-three-types" />
 /// <reference types="./missing-blockbench-types/index" />
 
-import { Object3D } from 'three';
+import * as THREE from 'three';
 import { ControllerEvent } from './controller';
 
 class WebXRPreview extends Preview {
+	camXR?: THREE.PerspectiveCamera;
+
 	raycast(event: ControllerEvent): false | RaycastResult {
 		let controller = event.controller
 		this.raycaster.set(controller.worldPosition, controller.worldDirection)
 
-		var objects: THREE.Object3D[]  = []
+		var objects: THREE.Object3D[] = []
 		Outliner.elements.forEach(element => {
 			if (element.mesh && element.mesh.geometry && element.visibility && !element.locked) {
 				objects.push(element.mesh);
@@ -93,7 +95,7 @@ class WebXRPreview extends Preview {
 					vertex_index: index,
 				}
 			} else if (intersect_object.type == 'LineSegments') {
-				let parent = intersect_object.parent as Object3D;
+				let parent = intersect_object.parent as THREE.Object3D;
 				var element = OutlinerNode.uuids[parent.name];
 				let vertices: Vertex[] = (intersect_object as OutlineLineSegments).vertex_order.slice(intersect.index, intersect.index as number + 2);
 				return {
@@ -107,6 +109,36 @@ class WebXRPreview extends Preview {
 			}
 		}
 		return false;
+	}
+	get camera() {
+		if (this.camXR)
+			return this.camXR;
+		else
+			return this.camPers;
+	}
+
+	occupyTransformer(event?: Event) {
+		Transformer.camera = this.camera;
+		Transformer.orbit_controls = this.controls;
+		Transformer.setCanvas(this.canvas);
+		// Variables declared in preview.js
+		// @ts-ignore
+		main_preview.controls.updateSceneScale();
+		// @ts-ignore
+		if (quad_previews) {
+			// @ts-ignore
+			quad_previews.hovered = this;
+		}
+		if (event && event.type == 'touchstart') {
+			Transformer.simulateMouseDown(event);
+		}
+		return this;
+	}
+
+	calculateControlScale(position: THREE.Vector3) {
+		var scaleVector = new THREE.Vector3();
+		var scale = scaleVector.subVectors(position, this.camera.position).length() / 16;
+		return scale;
 	}
 }
 

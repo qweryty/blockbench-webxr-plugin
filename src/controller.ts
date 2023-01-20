@@ -117,7 +117,6 @@ class Controller extends EventTarget {
             this.dispatchEvent(new ControllerEvent('squeezeend', this));
         });
         this._controller.addEventListener('connected', (e) => {
-            console.log(`connected: ${JSON.stringify(e)} ${e.data.gamepad} ${e.data.handedness}`)
             this._connected = true;
             this._gamepad = e.data.gamepad;
             this._handedness = e.data.handedness;
@@ -173,11 +172,11 @@ class Controller extends EventTarget {
 
     // TODO do I need new Vector3?
     get worldPosition(): THREE.Vector3 {
-        return this._controller.getWorldPosition(new THREE.Vector3);
+        return this._controller.getWorldPosition(new THREE.Vector3());
     }
 
     get worldDirection(): THREE.Vector3 {
-        return this._controller.getWorldDirection(new THREE.Vector3).multiplyScalar(-1);
+        return this._controller.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1);
     }
 
     get lastPosition(): THREE.Vector3 { return this._lastPosition; }

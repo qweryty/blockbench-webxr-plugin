@@ -12,7 +12,7 @@ import { WebXRTransformControls } from './webxr-transform-controls';
     const BASE_FAR = 2000;
 
     let sideGridsVisible: boolean, mainPreview: Preview, oldTransformer: THREE.TransformControls;
-    const preview = new WebXRPreview({ id: 'webxr', offscreen: true });  // FIXME bug in blockbench-types
+    const preview = new WebXRPreview({ id: 'webxr', offscreen: true });
     let renderer: THREE.WebGLRenderer, vrButton: HTMLElement, controllers: Controller[];
     const dolly = new THREE.Object3D();
     dolly.name = 'dolly';
@@ -40,6 +40,7 @@ import { WebXRTransformControls } from './webxr-transform-controls';
         tags: ['interface'],
         variant: 'web',  // Not sure if this will work with electron app
         onload() {
+            // FIXME gizmo center axes still being culled
             // three.js has a bug that incorrectly culls objects when dolly scale is too high
             THREE.Object3D.prototype.add = function (object: any) {
                 object.frustumCulled = false;
@@ -66,25 +67,32 @@ import { WebXRTransformControls } from './webxr-transform-controls';
             preview.camera.near = BASE_NEAR;
             camera.far = BASE_FAR;
             preview.camera.far = BASE_FAR;
+            // need this so gizmos will work correctly
+            // @ts-ignore
+            camera.preview = preview
+            preview.camXR = camera;
+            console.log(preview.camPers.parent)
 
-            dolly.add(camera)
-            dolly.add(preview.camera)
-            Canvas.scene.add(dolly)
+            dolly.add(camera);
+            dolly.add(preview.camOrtho);
+            dolly.add(preview.camPers);
+            Canvas.scene.add(dolly);
 
-            controllers = [new Controller(0, renderer, dolly), new Controller(1, renderer, dolly)]
+            controllers = [new Controller(0, renderer, dolly), new Controller(1, renderer, dolly)];
 
             // Replace gizmos with WebXRCompatible
-            oldTransformer = Transformer
+            oldTransformer = Transformer;
             // FIXME TransformControls is not asignable to type Object3D
             // @ts-ignore
-            Canvas.scene.remove(oldTransformer)
-            Canvas.gizmos.remove(oldTransformer)
+            Canvas.scene.remove(oldTransformer);
+            Canvas.gizmos.remove(oldTransformer);
 
-            Transformer = new WebXRTransformControls(mainPreview.camPers, mainPreview.canvas)
-            Transformer.setSize(0.5)
-            Canvas.scene.add(Transformer)
+            Transformer = new WebXRTransformControls(preview.camOrtho, mainPreview.canvas);
+            Transformer.setSize(0.5);
+            Canvas.scene.add(Transformer);
             Canvas.gizmos.push(Transformer);
-            mainPreview.occupyTransformer()
+            mainPreview.occupyTransformer(); // TODO occu
+            Transformer.camera = camera;
 
             // Setup VRButton
             vrButton = VRButton.createButton(renderer);
@@ -127,13 +135,17 @@ import { WebXRTransformControls } from './webxr-transform-controls';
             renderer.xr.addEventListener('sessionstart', () => {
                 sideGridsVisible = Canvas.side_grids.x.visible;
                 Canvas.side_grids.x.visible = false;
+                preview.occupyTransformer();
             });
             renderer.xr.addEventListener('sessionend', () => {
                 Canvas.side_grids.x.visible = sideGridsVisible;
+                mainPreview.occupyTransformer();
             });
 
             renderer.setAnimationLoop(function () {
                 const dt = clock.getDelta();
+
+                preview.controls.updateSceneScale();
 
                 if (controllers[1].isSqueezing && controllers[0].isSqueezing) {
                     // Locomotion with translation; rotation and scale

@@ -116,7 +116,6 @@ class WebXRTransformControls extends THREE.Object3D {
             scope.dispatchEvent(this.changeEvent);
         };
         this.setSize = function (size) {
-
             scope.size = size;
             this.update();
             scope.dispatchEvent(this.changeEvent);
@@ -127,7 +126,6 @@ class WebXRTransformControls extends THREE.Object3D {
             scope.dispatchEvent(this.changeEvent);
         };
         this.getScale = function () {
-
             Transformer.camera.updateMatrixWorld();
             this._camPosition.setFromMatrixPosition(Transformer.camera.matrixWorld);
 
@@ -158,7 +156,10 @@ class WebXRTransformControls extends THREE.Object3D {
             }
 
             // Update Eye Position
-            if (scope.camera instanceof THREE.PerspectiveCamera) {
+            if (scope.camera instanceof THREE.ArrayCamera){
+                // TODO seems to be a bug in three.js when getting xr camera world position
+                this._eye.copy(scope.camera.position).sub(this._worldPosition).normalize();
+            } else if (scope.camera instanceof THREE.PerspectiveCamera) {
                 this._eye.copy(this._camPosition).sub(this._worldPosition).normalize();
             } else if (scope.camera instanceof THREE.OrthographicCamera) {
                 this._eye.copy(this._camPosition).normalize();
