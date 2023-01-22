@@ -23,7 +23,7 @@ module.exports = {
         extensions: ['.tsx', '.ts', '.js']
     },
     output: {
-        filename: 'webxr_viewer.js',
+        filename: 'webxr_editor.js',
         path: PathModule.resolve(__dirname, 'plugins')
     },
     devServer: {

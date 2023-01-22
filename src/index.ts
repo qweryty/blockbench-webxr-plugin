@@ -32,11 +32,11 @@ import { WebXRTransformControls } from './webxr-transform-controls';
 
     const originalObject3DAdd = THREE.Object3D.prototype.add
     const originalSceneAdd = THREE.Scene.prototype.add
-    BBPlugin.register('webxr_viewer', {
-        title: 'WebXR Viewer',
+    BBPlugin.register('webxr_editor', {
+        title: 'WebXR Editor',
         author: 'Sergey Morozov',
-        icon: 'icon',
-        description: 'Allows previewing models using VR headsets, including Meta Quest 2',
+        icon: 'fa-vr-cardboard',
+        description: 'Allows editing models using VR headsets, including Meta Quest 2',
         version: '0.0.1',
         tags: ['interface'],
         variant: 'web',  // Not sure if this will work with electron app
