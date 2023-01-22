@@ -7,10 +7,11 @@ const fontAwesome = require.context('../../node_modules/@fortawesome/fontawesome
 
 import * as THREE from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
+import { Colors } from './colors';
 const svgLoader = new SVGLoader();
 
 const ICON_MATERIAL = new THREE.MeshBasicMaterial({
-    color: 0x3e90ff,
+    color: Colors.text,
     side: THREE.DoubleSide,
 });
 

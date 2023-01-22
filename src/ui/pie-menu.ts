@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Controller } from '../controller';
 import { iconFromName } from './icons'
+import { Colors } from './colors'
 
 function createSegmentShape(innerRadius: number, outerRadius: number, startAngle: number, endAngle: number) {
     const shape = new THREE.Shape();
@@ -79,8 +80,8 @@ interface PieMenuOptions {
     startRadius?: number
 }
 
-const SELECTED_COLOR = new THREE.Color(0xffffff)
-const DEFAULT_COLOR = new THREE.Color(0xaaaaaa)
+const SELECTED_COLOR = Colors.accent
+const DEFAULT_COLOR = Colors.button
 
 // TODO visibility depending on mode
 // TODO togglable
