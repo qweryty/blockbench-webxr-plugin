@@ -1,0 +1,6 @@
+#!/usr/bin/fontforge
+Open($1)
+SelectAll()
+UnlinkReference()
+#Generate("svg/" + $1:r + ".svg")
+Export($2 + "/%n-%e.svg")

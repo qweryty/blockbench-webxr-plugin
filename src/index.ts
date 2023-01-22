@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton';
 import { Controller, ControllerEvent } from './controller';
+import { PieMenu } from './ui/pie-menu';
 import { WebXRPreview } from './webxr-preview';
 import { WebXRTransformControls } from './webxr-transform-controls';
 
@@ -98,6 +99,16 @@ import { WebXRTransformControls } from './webxr-transform-controls';
             vrButton = VRButton.createButton(renderer);
             (mainPreview.canvas.parentNode as Node).appendChild(vrButton);
 
+            // Setup Pie Menus
+            let xPieMenu = new PieMenu([
+                // {icon: 'test'},
+                // {icon: 'test'},
+                // {icon: 'test'},
+                // {icon: 'test'},
+                {action: BarItems['undo'] as Action},
+                {action: BarItems['redo'] as Action},
+            ], {parent: dolly});
+
             // Setup events
             let mainHand: string | null = 'right';
             let mainHandActive: boolean = false;
@@ -180,6 +191,19 @@ import { WebXRTransformControls } from './webxr-transform-controls';
                     move(controllers[1]);
                 } else if (controllers[0].isSqueezing) {
                     move(controllers[0]);
+                }
+
+                // console.log(controllers[0].buttons?.ax.pressed)
+                if(controllers[0].buttons?.ax.pressed){
+                    if(!xPieMenu.isActive){
+                        let pieMenuRotation = controllers[0].rotation;
+                        pieMenuRotation.z = 0
+                        xPieMenu.activate(controllers[0].position, pieMenuRotation);
+                    }
+                    xPieMenu.onHover(controllers[0]);
+                } else {
+                    // TODO only on state change
+                    xPieMenu.onRelease(controllers[0]);
                 }
                 preview.render();
                 controllers[0].update();

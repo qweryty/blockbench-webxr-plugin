@@ -170,6 +170,8 @@ class Controller extends EventTarget {
     // mainly for pointing like UI interaction; equivalent to targetRaySpace
     get position(): THREE.Vector3 { return this._controller.position; }
 
+    get rotation(): THREE.Euler { return this._controller.rotation }
+
     // TODO do I need new Vector3?
     get worldPosition(): THREE.Vector3 {
         return this._controller.getWorldPosition(new THREE.Vector3());
