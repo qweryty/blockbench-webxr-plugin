@@ -101,10 +101,12 @@ import { WebXRTransformControls } from './webxr-transform-controls';
 
             // Setup Pie Menus
             let xPieMenu = new PieMenu([
-                // {icon: 'test'},
-                // {icon: 'test'},
-                // {icon: 'test'},
-                // {icon: 'test'},
+                {action: BarItems['move_tool'] as Tool},
+                {action: BarItems['resize_tool'] as Tool},
+                {action: BarItems['rotate_tool'] as Tool},
+                {action: BarItems['pivot_tool'] as Tool},
+                {action: BarItems['vertex_snap_tool'] as Tool},
+                {action: BarItems['seam_tool'] as Tool},
                 {action: BarItems['undo'] as Action},
                 {action: BarItems['redo'] as Action},
             ], {parent: dolly});

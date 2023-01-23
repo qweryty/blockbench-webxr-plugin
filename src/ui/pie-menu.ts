@@ -80,8 +80,9 @@ interface PieMenuOptions {
     startRadius?: number
 }
 
-const SELECTED_COLOR = Colors.accent
-const DEFAULT_COLOR = Colors.button
+const HOVER_COLOR = Colors.accent;
+const SELECTED_COLOR = Colors.selected;
+const DEFAULT_COLOR = Colors.button;
 
 // TODO visibility depending on mode
 // TODO togglable
@@ -107,6 +108,7 @@ class PieMenu extends THREE.Object3D {
             icons: this._items.map(v => iconFromName(v.action?.icon || v.icon, iconScale)),
             innerRadius: startRadius,
             outerRadius: startRadius + width,
+            startAngle: -Math.PI / this._items.length + Math.PI / 2,
             material: material
         })
         for (let i = 0; i < this._items.length; ++i) {
@@ -114,7 +116,6 @@ class PieMenu extends THREE.Object3D {
         }
         this.add(this._menuMesh);
         this._menuMesh.position.z = -.25
-        this._menuMesh.rotation.z = -Math.PI / this._items.length + Math.PI / 2
 
         this.deactivate()
     }
@@ -152,6 +153,9 @@ class PieMenu extends THREE.Object3D {
         let instanceId = this._intersect(controller);
         for (let i = 0; i < this._items.length; ++i) {
             if (i === instanceId) {
+                this._menuMesh.setColorAt(i, HOVER_COLOR);
+            } else if (this._items[i].action && Toolbox.selected?.id === this._items[i].action?.id){
+                console.log('selecting')
                 this._menuMesh.setColorAt(i, SELECTED_COLOR);
             } else {
                 this._menuMesh.setColorAt(i, DEFAULT_COLOR);

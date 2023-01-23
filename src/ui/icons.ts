@@ -81,14 +81,15 @@ function iconFromName(name?: string | boolean | (() => string), scale: number = 
                 const shape = shapes[j];
                 const geometry = new THREE.ShapeGeometry(shape);
                 const mesh = new THREE.Mesh(geometry, ICON_MATERIAL);
-                mesh.position.x = -centerX
-                mesh.position.y = -centerY
+                mesh.position.x = -centerX;
+                mesh.position.y = -centerY;
                 iconGroup.add(mesh);
             }
         }
     });
 
-    iconGroup.scale.setScalar(scale / scaleFactor)
+    iconGroup.scale.setScalar(scale / scaleFactor);
+    iconGroup.rotateZ(Math.PI);
 
     return iconGroup;
 }
